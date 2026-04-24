@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Results - PDMS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: sans-serif; background: #f4f6f9; color: #222; }
+        .layout { display: flex; min-height: 100vh; }
+
+        /* Sidebar */
+        .sidebar {
+            width: 220px; background: #1e2130; color: #cdd0db;
+            display: flex; flex-direction: column;
+            padding: 1.5rem 1rem; gap: 0.5rem;
+            position: fixed; top: 0; left: 0; bottom: 0;
+            z-index: 100; transition: transform 0.25s ease;
+        }
+        .sidebar-top { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
+        .logo-circle {
+            width: 36px; height: 36px; background: #4f6ef7; color: #fff;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 1rem;
+        }
+        .logo-text { font-size: 1.1rem; font-weight: 600; color: #fff; }
+        .nav-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: #666d88; margin: 0.5rem 0 0.25rem; padding-left: 0.25rem; }
+        .sidebar ul { list-style: none; display: flex; flex-direction: column; gap: 0.15rem; }
+        .sidebar li { padding: 0.55rem 0.75rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; transition: background 0.15s; }
+        .sidebar li:hover { background: #2a2f45; color: #fff; }
+        .sidebar li.active { background: #4f6ef7; color: #fff; }
+
+        /* Main */
+        .main {
+            margin-left: 220px; display: flex; flex-direction: column;
+            min-height: 100vh; width: calc(100% - 220px);
+            transition: margin-left 0.25s, width 0.25s;
+        }
+        .main.shift { margin-left: 0; width: 100%; }
+        .sidebar.hidden { transform: translateX(-220px); }
+
+        /* Topbar */
+        .topbar {
+            background: #fff; border-bottom: 1px solid #e4e7ef;
+            padding: 0.75rem 1.5rem; display: flex; align-items: center;
+            justify-content: space-between; position: sticky; top: 0; z-index: 50;
+        }
+        .topbar .left { display: flex; align-items: center; gap: 0.75rem; }
+        .menu-btn { font-size: 1.25rem; cursor: pointer; color: #555; }
+        .title { font-weight: 600; font-size: 1rem; color: #1e2130; }
+        .home-btn {
+            font-size: 0.85rem; color: #4f6ef7; text-decoration: none;
+            padding: 0.3rem 0.75rem; border: 1px solid #4f6ef7; border-radius: 6px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .home-btn:hover { background: #4f6ef7; color: #fff; }
+
+        /* Content */
+        .content { padding: 2rem 1.5rem; flex: 1; }
+        .content h1 { font-size: 1.5rem; font-weight: 700; color: #1e2130; margin-bottom: 0.25rem; }
+        .subtitle { font-size: 0.9rem; color: #666; margin-bottom: 1.5rem; }
+
+        /* Add box */
+        .add-box {
+            background: #fff; border: 1px solid #e4e7ef;
+            border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;
+        }
+        .add-box h2 { font-size: 1rem; font-weight: 600; color: #1e2130; margin-bottom: 1rem; }
+
+        .form-row { display: grid; gap: 0.75rem; margin-bottom: 0.75rem; }
+        .results-form-row   { grid-template-columns: 1fr 1fr; }
+        .results-form-row-2 { grid-template-columns: 1fr 1fr auto; align-items: end; }
+
+        .combo-field { display: flex; flex-direction: column; }
+        .combo-field-grow { flex: 1; }
+        .combo-label { font-size: 0.82rem; font-weight: 600; color: #555; margin-bottom: 0.35rem; }
+
+        .combo { position: relative; }
+        .combo-block { display: block; }
+        .combo-input, .add-box input[type="number"] {
+            width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5e0;
+            border-radius: 6px; font-size: 0.88rem; outline: none; background: #f9fafc;
+            transition: border-color 0.15s;
+        }
+        .combo-input:focus, .add-box input[type="number"]:focus { border-color: #4f6ef7; background: #fff; }
+
+        .combo-list {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: #fff; border: 1px solid #d1d5e0; border-top: none;
+            border-radius: 0 0 6px 6px; list-style: none;
+            max-height: 200px; overflow-y: auto; z-index: 200;
+        }
+        .combo-list.hidden { display: none; }
+        .combo-list li { padding: 0.5rem 0.75rem; font-size: 0.88rem; cursor: pointer; }
+        .combo-list li:hover { background: #f0f3ff; }
+
+        .add-btn {
+            padding: 0.5rem 1.1rem; background: #4f6ef7; color: #fff;
+            border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 600;
+            cursor: pointer; white-space: nowrap; transition: background 0.15s; height: 38px;
+        }
+        .add-btn:hover { background: #3a58e0; }
+
+        #message { font-size: 0.85rem; min-height: 1.2em; margin-top: 0.5rem; }
+        #message.success { color: #2a9d5c; }
+        #message.error   { color: #d94f4f; }
+
+        /* Toolbar */
+        .results-table-section { margin-top: 0.5rem; }
+        .results-toolbar {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.85rem;
+        }
+        .results-search-input {
+            padding: 0.5rem 0.75rem; border: 1px solid #d1d5e0; border-radius: 6px;
+            font-size: 0.88rem; outline: none; background: #f9fafc;
+            transition: border-color 0.15s; width: 100%; max-width: 340px;
+        }
+        .results-search-input:focus { border-color: #4f6ef7; background: #fff; }
+        .results-summary { font-size: 0.82rem; color: #888; }
+
+        /* Table */
+        .table-container {
+            background: #fff; border: 1px solid #e4e7ef;
+            border-radius: 10px; overflow-x: auto;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        thead th {
+            background: #f4f6f9; padding: 0.65rem 1rem; text-align: left;
+            font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.05em; color: #888; border-bottom: 1px solid #e4e7ef;
+        }
+        tbody tr { border-bottom: 1px solid #f0f2f8; transition: background 0.12s; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: #f7f9ff; }
+        tbody td { padding: 0.7rem 1rem; color: #333; vertical-align: middle; }
+
+        .student-name { font-weight: 500; color: #1e2130; }
+        .student-reg  { font-size: 0.75rem; color: #aaa; margin-top: 2px; }
+        .multi-offer  { font-size: 0.7rem; background: #fff4e0; color: #c87f0a; border: 1px solid #f5c96a; border-radius: 20px; padding: 0.1rem 0.5rem; margin-left: 6px; font-weight: 600; vertical-align: middle; }
+
+        .badge {
+            display: inline-block; padding: 0.22rem 0.7rem;
+            border-radius: 20px; font-size: 0.78rem; font-weight: 600;
+            border: 1.5px solid transparent;
+        }
+        .badge.placed      { background: #e6f4ee; color: #2a9d5c; border-color: #7dd4a8; }
+        .badge.selected    { background: #e6f4ee; color: #2a9d5c; border-color: #7dd4a8; }
+        .badge.rejected    { background: #fdeaea; color: #d94f4f; border-color: #f5a5a5; }
+        .badge.shortlisted { background: #f0ebff; color: #6c3fc9; border-color: #c4a8f5; }
+        .badge.waitlisted  { background: #fff4e0; color: #c87f0a; border-color: #f5c96a; }
+        .badge.offered     { background: #e6f4ee; color: #2a9d5c; border-color: #7dd4a8; }
+        .badge.not-placed  { background: #fdeaea; color: #d94f4f; border-color: #f5a5a5; }
+
+        .pkg { font-weight: 600; color: #1e2130; }
+        .pkg-unit { font-size: 0.75rem; color: #aaa; margin-left: 2px; }
+
+        /* Footer */
+        .footer {
+            padding: 1rem 1.5rem; font-size: 0.8rem; color: #aaa;
+            border-top: 1px solid #e4e7ef; background: #fff; text-align: center;
+        }
+
+        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+        @media (max-width: 700px) {
+            .sidebar { transform: translateX(-220px); }
+            .sidebar.active { transform: translateX(0); }
+            .main { margin-left: 0; width: 100%; }
+            .results-form-row   { grid-template-columns: 1fr; }
+            .results-form-row-2 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+
+<body>
+<div class="layout">
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top">
+            <div class="logo-circle">P</div>
+            <h2 class="logo-text">PDMS</h2>
+        </div>
+        <p class="nav-title">Navigation</p>
+        <ul>
+            <li onclick="navigate('dashboard')">🏠 Dashboard</li>
+            <li onclick="navigate('students')">🎓 Students</li>
+            <li onclick="navigate('companies')">🏢 Companies</li>
+            <li onclick="navigate('drives')">📅 Drives</li>
+            <li onclick="navigate('applications')">📄 Applications</li>
+            <li class="active">🎯 Results</li>
+        </ul>
+    </aside>
+
+    <main class="main" id="main">
+
+        <div class="topbar">
+            <div class="left">
+                <span class="menu-btn" onclick="toggleSidebar()">☰</span>
+                <span class="title">PDMS</span>
+            </div>
+            <a href="index.html" class="home-btn">← Home</a>
+        </div>
+
+        <div class="content">
+            <h1>Results</h1>
+            <p class="subtitle">Placement outcomes — color-coded by status. Students with multiple offers shown with a tag.</p>
+
+            <div class="add-box">
+                <h2>Add result</h2>
+
+                <div class="form-row results-form-row">
+                    <div class="combo-field">
+                        <label class="combo-label" for="resultStudentInput">Student</label>
+                        <div class="combo combo-block" id="resultStudentCombo">
+                            <input type="text" class="combo-input" id="resultStudentInput" autocomplete="off" placeholder="Search student…" />
+                            <input type="hidden" class="combo-value" value="" />
+                            <ul class="combo-list hidden" role="listbox"></ul>
+                        </div>
+                    </div>
+                    <div class="combo-field">
+                        <label class="combo-label" for="resultCompanyInput">Company</label>
+                        <div class="combo combo-block" id="resultCompanyCombo">
+                            <input type="text" class="combo-input" id="resultCompanyInput" autocomplete="off" placeholder="Search company…" />
+                            <input type="hidden" class="combo-value" value="" />
+                            <ul class="combo-list hidden" role="listbox"></ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row results-form-row-2">
+                    <input type="number" id="package" placeholder="Package offered (LPA)" min="0.01" step="0.01">
+                    <div class="combo-field combo-field-grow">
+                        <label class="combo-label" for="resultStatusInput">Offer status</label>
+                        <div class="combo combo-block" id="resultStatusCombo">
+                            <input type="text" class="combo-input" id="resultStatusInput" autocomplete="off" placeholder="Search status…" />
+                            <input type="hidden" class="combo-value" value="" />
+                            <ul class="combo-list hidden" role="listbox"></ul>
+                        </div>
+                    </div>
+                    <button type="button" onclick="addResult()" class="add-btn">Add</button>
+                </div>
+
+                <p id="message"></p>
+            </div>
+
+            <div class="results-table-section">
+                <div class="results-toolbar">
+                    <label class="sr-only" for="resultsSearch">Search results</label>
+                    <input type="text" id="resultsSearch" class="results-search-input"
+                        placeholder="Search by student name or reg no…" autocomplete="off"
+                        oninput="filterResults()">
+                    <p id="resultsSummary" class="results-summary" aria-live="polite"></p>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Company</th>
+                                <th>Package</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            Placement Drive Management System — DBMS Project
+        </footer>
+
+    </main>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/script.js"></script>
+<script src="js/autocomplete.js"></script>
+<script src="js/results.js"></script>
+
+<script>
+    const _students = {
+        "00101032024": "Aakansha",
+        "00201032024": "Aakriti Rajhans",
+        "00501032024": "Aastha Garg",
+        "00601032024": "Aastha Shakya",
+        "00701032024": "Aayushi Singh",
+        "00801032024": "Abhishree Bhardwaj",
+        "00901032024": "Aditi Gupta",
+        "01001032024": "Aditi Raj",
+        "01101032024": "Aditi Rana",
+        "01201032024": "Akankcha Kumari",
+        "01301032024": "Ananshi Nayak",
+        "01401032024": "Anjali Dwivedi",
+        "01501032024": "Anshika",
+        "01601032024": "Anupriya",
+        "01701032024": "Anushka Varshney",
+        "01801032024": "Apoorva Saraswat",
+        "01901032024": "Aradhana Dash",
+        "02001032024": "Archi",
+        "02101032024": "Ariza Wasim",
+        "02201032024": "Arni Goyal",
+        "02301032024": "Aviral",
+        "02401032024": "Bhoomi Verma",
+        "02501032024": "Bhoomika Garg"
+    };
+
+    const _results = [
+        { id: "r1",  reg: "00101032024", company: "Google",    package: 18.5, status: "Placed" },
+        { id: "r2",  reg: "00201032024", company: "Microsoft", package: 16.0, status: "Placed" },
+        { id: "r3",  reg: "00501032024", company: "Infosys",   package: 6.5,  status: "Placed" },
+        { id: "r4",  reg: "00601032024", company: "TCS",       package: 7.0,  status: "Placed" },
+        { id: "r5",  reg: "00701032024", company: "Amazon",    package: 22.0, status: "Placed" },
+        { id: "r6",  reg: "00801032024", company: "Wipro",     package: 5.5,  status: "Not Placed" },
+        { id: "r7",  reg: "00901032024", company: "Accenture", package: 8.0,  status: "Placed" },
+        { id: "r8",  reg: "01001032024", company: "Cognizant", package: 6.0,  status: "Waitlisted" },
+        { id: "r9",  reg: "01101032024", company: "HCL",       package: 5.0,  status: "Rejected" },
+        { id: "r10", reg: "01201032024", company: "Google",    package: 18.5, status: "Shortlisted" },
+        { id: "r11", reg: "01301032024", company: "Microsoft", package: 16.0, status: "Placed" },
+        { id: "r12", reg: "01401032024", company: "Amazon",    package: 22.0, status: "Placed" },
+        { id: "r13", reg: "01501032024", company: "TCS",       package: 7.0,  status: "Placed" },
+        { id: "r14", reg: "01601032024", company: "Microsoft",   package: 65.5,  status: "Placed" },
+        { id: "r15", reg: "01701032024", company: "Wipro",     package: 5.5,  status: "Placed" },
+        { id: "r16", reg: "01801032024", company: "Accenture", package: 8.0,  status: "Placed" },
+        { id: "r17", reg: "01901032024", company: "Cognizant", package: 6.0,  status: "Shortlisted" },
+        { id: "r18", reg: "02001032024", company: "HCL",       package: 5.0,  status: "Placed" },
+        { id: "r19", reg: "02101032024", company: "Google",    package: 18.5, status: "Placed" },
+        { id: "r20", reg: "02201032024", company: "TCS",       package: 7.0,  status: "Waitlisted" },
+        { id: "r21", reg: "02301032024", company: "Microsoft", package: 16.0, status: "Placed" },
+        { id: "r22", reg: "02401032024", company: "Amazon",    package: 22.0, status: "Rejected" },
+        { id: "r23", reg: "02501032024", company: "Infosys",   package: 6.5,  status: "Placed" },
+        // multiple offers
+        { id: "r24", reg: "00101032024", company: "Microsoft", package: 16.0, status: "Placed" },
+        { id: "r25", reg: "00701032024", company: "TCS",       package: 7.0,  status: "Placed" },
+        { id: "r26", reg: "01301032024", company: "Amazon",    package: 22.0, status: "Placed" }
+    ];
+
+    // count offers per student
+    const offerCount = {};
+    _results.forEach(r => { offerCount[r.reg] = (offerCount[r.reg] || 0) + 1; });
+
+    function badgeClass(status) {
+        const s = status.toLowerCase().replace(/\s+/g, '-');
+        return s;
+    }
+
+    function escHtml(str) {
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    let _filtered = [..._results];
+
+    function renderTable(data) {
+        const tbody = document.getElementById("tableBody");
+        tbody.innerHTML = "";
+        data.forEach(r => {
+            const name = _students[r.reg] || "Unknown";
+            const multi = offerCount[r.reg] > 1
+                ? `<span class="multi-offer">+${offerCount[r.reg] - 1} more offer${offerCount[r.reg] > 2 ? 's' : ''}</span>`
+                : '';
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>
+                    <div class="student-name">${escHtml(name)}${multi}</div>
+                    <div class="student-reg">${escHtml(r.reg)}</div>
+                </td>
+                <td>${escHtml(r.company)}</td>
+                <td><span class="pkg">${r.package.toFixed(1)}</span><span class="pkg-unit">LPA</span></td>
+                <td><span class="badge ${badgeClass(r.status)}">${escHtml(r.status)}</span></td>
+            `;
+            tbody.appendChild(tr);
+        });
+        document.getElementById("resultsSummary").textContent =
+            `Showing ${data.length} of ${_results.length} results`;
+    }
+
+    function filterResults() {
+        const q = document.getElementById("resultsSearch").value.toLowerCase().trim();
+        _filtered = q
+            ? _results.filter(r => {
+                const name = (_students[r.reg] || "").toLowerCase();
+                return name.includes(q) || r.reg.includes(q) || r.company.toLowerCase().includes(q);
+              })
+            : [..._results];
+        renderTable(_filtered);
+    }
+
+    renderTable(_results);
+</script>
+
+</body>
+</html>
