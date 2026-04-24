@@ -68,13 +68,10 @@ python -m http.server 8000
 - **Database:** (Add yours — MySQL / PostgreSQL / SQLite)
 - **Backend:** (Add yours — Flask / Node.js / PHP)
 
----
 
-## 📸 Screenshots
+## 🚀 Live Demo
 
-> _Add screenshots of the landing page, dashboard, and modules here._
-
----
+🔗 https://placementdrivemanangementsystem.onrender.com
 
 ## 📋 Database Schema (Overview)
 
